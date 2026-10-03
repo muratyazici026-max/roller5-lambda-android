@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#23408E">
+<title>Roller-5 Lambda</title>
+<style>
+:root{
+  --bg:#EDEFEB; --panel:#F8F9F6; --ink:#1E2638; --muted:#5C6474; --line:#CDD2CA; --soft:#E1E5DE;
+  --cobalt:#23408E; --bad:#BE3B35; --low:#D9776F; --good:#3F8E6E; --high:#B9861F; --field:#FFFDF3; --fieldline:#D9C27A;
+  box-sizing:border-box;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#13161D; --panel:#1A1E27; --ink:#E6E8ED; --muted:#99A0AD; --line:#2D323D; --soft:#242936;
+    --cobalt:#86A2EC; --bad:#E2645C; --low:#E8958D; --good:#5DB58F; --high:#E0AE48; --field:#24221A; --fieldline:#7A6A30;
+  }
+}
+html{scroll-padding-top:120px}
+*,*::before,*::after{box-sizing:inherit;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Roboto Condensed","Arial Narrow",Roboto,system-ui,sans-serif;
+  font-size:16px;line-height:1.45;-webkit-font-smoothing:antialiased}
+main{max-width:560px;margin:0 auto;padding:0 14px 48px}
+button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
+.num{font-variant-numeric:tabular-nums}
+
+.result{position:sticky;top:0;z-index:20;background:var(--bg);padding:12px 0 10px;border-bottom:1px solid var(--line)}
+.result-row{display:flex;align-items:center;gap:14px}
+.lam{font-size:52px;line-height:.9;font-weight:800;letter-spacing:-1px;min-width:2.4ch}
+.res-meta{flex:1;min-width:0}
+.res-id{font-weight:700;font-size:15px}
+.tag{display:inline-block;padding:3px 10px;border-radius:999px;font-size:13px;font-weight:700;color:#fff;margin-top:3px}
+.cmp{font-size:14px;color:var(--muted);margin-top:4px}
+.better{color:var(--good);font-weight:700}.worse{color:var(--bad);font-weight:700}
+
+h1{font-size:30px;line-height:1.05;font-weight:800;margin:20px 0 4px}
+h2{font-size:19px;font-weight:750;margin:0 0 10px}
+.sub{color:var(--muted);font-size:14px;margin:0 0 14px}
+.block{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;margin:14px 0}
+.small{font-size:13px;color:var(--muted)}
+
+.rounds{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.rounds label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
+select,.txt{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:9px 10px}
+textarea.txt{min-height:110px;font-size:12px;font-family:monospace}
+.btn{appearance:none;border:0;border-radius:8px;padding:11px 14px;font-weight:700;cursor:pointer;background:var(--soft);touch-action:manipulation}
+.btn.primary{background:var(--cobalt);color:#fff}
+.btn.ghost{background:transparent;border:1px solid var(--line)}
+.btn.danger{background:transparent;border:1px solid var(--bad);color:var(--bad)}
+.btn:disabled{opacity:.45;cursor:default}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.row .btn{flex:1}
+.newround,.panel2{display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+.newround.open,.panel2.open{display:block}
+.newround .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.newround .full{grid-column:1/-1}
+.notice{font-size:13px;margin-top:10px;padding:8px 10px;border-radius:6px;background:var(--soft)}
+
+.map{display:flex;flex-direction:column;gap:8px}
+.grow{display:grid;grid-template-columns:52px 1fr;gap:8px;align-items:center}
+.glabel{font-size:12px;line-height:1.2;color:var(--muted)}
+.glabel b{display:block;color:var(--ink);font-size:14px}
+.cells{display:grid;grid-template-columns:repeat(8,1fr);gap:3px}
+.cell{appearance:none;border:0;border-radius:5px;min-height:46px;padding:3px 0;cursor:pointer;color:#fff;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.1;position:relative;touch-action:manipulation}
+.cell .i{font-size:11px;font-weight:700;opacity:.9}
+.cell .v{font-size:13px;font-weight:800;letter-spacing:-.3px}
+.cell.empty{background:transparent;border:1px dashed var(--line);color:var(--muted)}
+.cell.off{background:var(--soft);color:var(--muted)}
+.cell .ar{position:absolute;top:1px;right:3px;font-size:10px;font-weight:800;color:#fff}
+.cell[aria-pressed="true"]{outline:3px solid var(--ink);outline-offset:1px;z-index:1}
+.legend{display:flex;flex-wrap:wrap;gap:6px 12px;font-size:12px;color:var(--muted);margin-top:10px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+
+.field{margin-bottom:12px}
+.field label{display:block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:5px}
+.stepper{display:flex;gap:6px}
+.step{flex:0 0 48px;border:0;border-radius:8px;background:var(--soft);font-size:22px;font-weight:700;cursor:pointer;touch-action:manipulation;user-select:none}
+.step:active{background:var(--cobalt);color:#fff}
+.stepper input{flex:1;min-width:0;text-align:center;font-size:20px;font-weight:700;padding:10px 6px;border-radius:8px;
+  background:var(--field);border:1.5px solid var(--fieldline)}
+.stepper input:focus{outline:none;border-color:var(--cobalt)}
+.panelhead{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+
+.target{display:grid;grid-template-columns:1fr;gap:8px;margin-top:10px}
+.tline{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:10px 12px;border-radius:8px;background:var(--bg)}
+.tline .big{font-size:26px;font-weight:800}
+.tline .lbl{font-size:14px}
+
+.bar{display:flex;height:12px;border-radius:6px;overflow:hidden;background:var(--soft);margin:8px 0}
+.list{margin:8px 0 0;padding:0;list-style:none}
+.list li{display:flex;justify-content:space-between;padding:7px 0;border-top:1px solid var(--line);font-size:14px}
+.list li:first-child{border-top:0}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:16px;background:var(--ink);color:var(--bg);
+  padding:10px 16px;border-radius:8px;font-size:14px;font-weight:600;opacity:0;pointer-events:none;transition:opacity .2s;z-index:50;max-width:90vw}
+.toast.show{opacity:1}
+.foot{font-size:12px;color:var(--muted);text-align:center;margin-top:18px}
+</style>
+</head>
+<body>
+<main>
+
+<div class="result" aria-live="polite">
+  <div class="result-row">
+    <div class="lam num" id="lamVal">–</div>
+    <div class="res-meta">
+      <div class="res-id" id="resId">Serbest hesap</div>
+      <span class="tag" id="resTag" style="background:var(--muted)">Değer girin</span>
+      <div class="cmp" id="resCmp"></div>
+    </div>
+  </div>
+</div>
+
+<h1>Roller-5 lambda</h1>
+<p class="sub">PL7-APG brülör hava indeksi: ölçüm turu, ayar asistanı ve karşılaştırma. Veriler bu telefonda saklanır.</p>
+
+<div class="block" id="roundBlock">
+  <div class="rounds">
+    <div><label for="curSel">Ölçüm turu</label><select id="curSel"></select></div>
+    <div><label for="cmpSel">Karşılaştır</label><select id="cmpSel"></select></div>
+  </div>
+  <div class="row">
+    <button class="btn ghost" id="newBtn">Yeni tur başlat</button>
+    <button class="btn ghost" id="delRoundBtn" hidden>Turu sil</button>
+  </div>
+  <div class="newround" id="newForm">
+    <div class="grid">
+      <div class="full"><label class="small" for="nrName">Tur adı</label><input class="txt" id="nrName"></div>
+      <div><label class="small" for="nrDate">Tarih</label><input class="txt" type="date" id="nrDate"></div>
+      <div><label class="small" for="nrFan">Yanma hava fanı</label>
+        <select id="nrFan"><option value="ana">Ana fan</option><option value="yedek">Yedek fan</option></select></div>
+      <div class="full"><label class="small" for="nrNote">Not (isteğe bağlı)</label><input class="txt" id="nrNote" placeholder="Örn. 4. grup ayarından sonra"></div>
+    </div>
+    <div class="row"><button class="btn" id="nrCancel">Vazgeç</button><button class="btn primary" id="nrSave">Turu başlat</button></div>
+  </div>
+  <div class="notice" id="roundNote" hidden></div>
+</div>
+
+<div class="block">
+  <h2>Fırın haritası</h2>
+  <div class="map" id="map"></div>
+  <div class="legend">
+    <span><i style="background:var(--bad)"></i>&lt;0,85 eksik hava</span>
+    <span><i style="background:var(--low)"></i>0,85–0,95 hafif düşük</span>
+    <span><i style="background:var(--good)"></i>0,95–1,10 uygun</span>
+    <span><i style="background:var(--high)"></i>&gt;1,10 hava fazlası</span>
+    <span>▲▼ karşılaştırılan tura göre</span>
+  </div>
+</div>
+
+<div class="block" id="inputBlock">
+  <div class="panelhead"><h2 id="panelTitle">Serbest hesap</h2><button class="btn ghost" id="freeBtn" hidden style="padding:6px 10px;font-size:13px">Seçimi bırak</button></div>
+  <div class="field"><label for="pa">Hava basıncı (PA), mbar</label>
+    <div class="stepper"><button class="step" data-t="pa" data-s="-0.5" aria-label="Havayı azalt">−</button><input id="pa" inputmode="decimal" autocomplete="off"><button class="step" data-t="pa" data-s="0.5" aria-label="Havayı artır">+</button></div></div>
+  <div class="field"><label for="pg">Gaz basıncı (PG), mbar</label>
+    <div class="stepper"><button class="step" data-t="pg" data-s="-0.5" aria-label="Gazı azalt">−</button><input id="pg" inputmode="decimal" autocomplete="off"><button class="step" data-t="pg" data-s="0.5" aria-label="Gazı artır">+</button></div></div>
+  <div class="field"><label for="ta">Yanma havası sıcaklığı (ta), °C</label>
+    <div class="stepper"><button class="step" data-t="ta" data-s="-5" aria-label="Sıcaklığı azalt">−</button><input id="ta" inputmode="decimal" autocomplete="off" value="30"><button class="step" data-t="ta" data-s="5" aria-label="Sıcaklığı artır">+</button></div></div>
+  <div id="saveRow" class="row" hidden>
+    <button class="btn primary" id="saveBtn" style="flex-basis:100%">Kaydet ve sonrakine geç</button>
+    <button class="btn" id="offBtn">Yanmıyor</button>
+    <button class="btn ghost" id="clearBtn">Ölçümü sil</button>
+  </div>
+</div>
+
+<div class="block">
+  <h2>Ayar asistanı</h2>
+  <div class="field" style="margin-bottom:4px"><label for="tgt">Hedef λ</label>
+    <div class="stepper"><button class="step" data-t="tgt" data-s="-0.05" aria-label="Hedefi azalt">−</button><input id="tgt" inputmode="decimal" value="1,05"><button class="step" data-t="tgt" data-s="0.05" aria-label="Hedefi artır">+</button></div></div>
+  <div class="target" id="assist"></div>
+  <p class="small" style="margin:10px 0 0">İki yoldan birini seçin: gaz sabitken havayı ya da hava sabitken gazı ayarlayın. Hava hattı ortak olduğu için bir brülörde havayı değiştirmek komşuları da etkileyebilir; ayardan sonra komşu brülörü yeniden ölçün.</p>
+</div>
+
+<div class="block" id="sumBlock">
+  <h2 id="sumTitle">Tur özeti</h2>
+  <div id="sum"></div>
+</div>
+
+<div class="block">
+  <h2>Veri paylaşımı ve yedek</h2>
+  <p class="small" style="margin:0">Ölçümler yalnızca bu telefonda durur. Uygulamayı silmeden önce yedek alın.</p>
+  <div class="row">
+    <button class="btn" id="csvBtn">Turu CSV paylaş</button>
+    <button class="btn" id="bakBtn">Tüm yedeği paylaş</button>
+  </div>
+  <div class="row"><button class="btn ghost" id="impBtn">Yedeği geri yükle</button></div>
+  <div class="panel2" id="impForm">
+    <label class="small" for="impTxt">Yedek metnini (JSON) buraya yapıştırın</label>
+    <textarea class="txt" id="impTxt"></textarea>
+    <div class="row"><button class="btn" id="impCancel">Vazgeç</button><button class="btn primary" id="impMerge">Ekle / güncelle</button></div>
+    <div class="row"><button class="btn danger" id="impReplace">Tümünü değiştir</button></div>
+  </div>
+</div>
+
+<p class="foot">n = 1,108 · (PA/PG)<sup>0,486</sup> · √(303 / (273 + ta))<br>PL7-APG, 60 mm çıkış. 30–100°C aralığında 12 noktayla doğrulandı (±0,02).</p>
+</main>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+(function(){
+const $=id=>document.getElementById(id);
+const K=1.108,E=0.486;
+const sT=ta=>Math.sqrt(303/(273+ta));
+const lamOf=(pa,pg,ta)=>(pa>0&&pg>0&&isFinite(ta))?K*Math.pow(pa/pg,E)*sT(ta):null;
+const needPA=(pg,ta,n)=>pg*Math.pow(n/(K*sT(ta)),1/E);
+const needPG=(pa,ta,n)=>pa/Math.pow(n/(K*sT(ta)),1/E);
+const num=s=>{if(s==null)return NaN;const v=parseFloat(String(s).replace(',','.'));return isFinite(v)?v:NaN;};
+const f=(v,d=2)=>v.toLocaleString('tr-TR',{minimumFractionDigits:d,maximumFractionDigits:d});
+function cat(l){
+  if(l<.85)return{c:'--bad',t:'Eksik hava, öncelikli'};
+  if(l<.95)return{c:'--low',t:'Hafif düşük'};
+  if(l<=1.10)return{c:'--good',t:'Uygun'};
+  return{c:'--high',t:'Hava fazlası'};
+}
+const dist=l=>l<.95?.95-l:l>1.10?l-1.10:0;
+
+const GROUPS=[{g:3,set:850,n:[19,20]},{g:4,set:1050,n:[23,24]},{g:5,set:1155,n:[25,26,27,28]},
+  {g:6,set:1155,n:[29,30,31,32]},{g:7,set:1165,n:[33,34,35]},{g:8,set:1165,n:[37,38,39,40]}];
+const ORDER=GROUPS.flatMap(G=>G.n.flatMap(n=>[n+'A',n+'B']));
+const groupOf=id=>GROUPS.find(G=>G.n.includes(parseInt(id)));
+
+/* ---------- Yerel depolama ---------- */
+const KEY='r5lambda.rounds.v1';
+const SEED=[{"b":{"19A":{"off":true},"19B":{"pa":10.67,"pg":35.2,"ta":30},"20A":{"pa":25.5,"pg":14.47,"ta":30},"20B":{"off":true},"23A":{"pa":6.01,"pg":9.51,"ta":30},"24A":{"pa":14.2,"pg":18.1,"ta":30},"24B":{"pa":6.1,"pg":5.1,"ta":30},"25A":{"pa":16.4,"pg":11.15,"ta":30},"25B":{"pa":15.97,"pg":27.66,"ta":30},"26A":{"pa":21.38,"pg":27.89,"ta":30},"26B":{"pa":18.95,"pg":28.21,"ta":30},"27A":{"pa":17.7,"pg":14.58,"ta":30},"27B":{"pa":12.39,"pg":18.49,"ta":30},"28A":{"pa":14.84,"pg":27.7,"ta":30},"28B":{"pa":17.65,"pg":24.32,"ta":30},"29A":{"pa":12,"pg":13.5,"ta":30},"29B":{"pa":6.02,"pg":11.25,"ta":30},"30A":{"pa":13.7,"pg":23.41,"ta":30},"30B":{"pa":15.15,"pg":33.88,"ta":30},"33A":{"pa":20.47,"pg":27.83,"ta":30},"33B":{"pa":23.82,"pg":24.73,"ta":30},"34A":{"pa":24.6,"pg":12.33,"ta":30},"34B":{"pa":26.02,"pg":18.09,"ta":30},"35A":{"pa":19.43,"pg":24.48,"ta":30},"35B":{"pa":24.87,"pg":29.05,"ta":30},"37A":{"pa":20.77,"pg":15.49,"ta":30},"37B":{"pa":25.14,"pg":19.25,"ta":30},"38A":{"pa":24.71,"pg":19.14,"ta":30},"38B":{"pa":24.94,"pg":14.8,"ta":30},"39A":{"pa":19.15,"pg":31.1,"ta":30},"39B":{"pa":28.28,"pg":25.27,"ta":30},"40A":{"pa":20.49,"pg":17.01,"ta":30},"40B":{"pa":27.25,"pg":26.95,"ta":30}},"createdAt":1,"date":"","fan":"ana","name":"1. ölçüm (ana fan)","note":"23B ölçüm sırasında söndü; sonra 18,24 hava / 24 gaz mbar ayarlandı.","id":"r1"},{"b":{"19B":{"pa":4.19,"pg":37.88,"ta":30},"20A":{"pa":26.58,"pg":11.91,"ta":30},"23A":{"pa":19.62,"pg":42,"ta":30},"23B":{"pa":1.79,"pg":1.96,"ta":30},"24A":{"pa":8.43,"pg":5.23,"ta":30},"24B":{"pa":10.62,"pg":13.7,"ta":30},"25A":{"pa":8.51,"pg":20.55,"ta":30},"25B":{"pa":26.6,"pg":26.21,"ta":30},"26A":{"pa":20.49,"pg":21.13,"ta":30},"26B":{"pa":19.46,"pg":31.62,"ta":30},"27A":{"pa":5.76,"pg":5.43,"ta":30},"27B":{"pa":21.42,"pg":15.27,"ta":30},"28A":{"pa":19.31,"pg":23.27,"ta":30},"28B":{"pa":18.74,"pg":31.36,"ta":30},"29A":{"pa":6.37,"pg":13.5,"ta":30},"29B":{"pa":5.28,"pg":11.25,"ta":30},"30A":{"pa":19.19,"pg":23.41,"ta":30},"30B":{"pa":25.37,"pg":33.88,"ta":30},"31A":{"pa":8.55,"pg":10,"ta":30},"31B":{"pa":13.09,"pg":12.45,"ta":30},"32B":{"pa":24.8,"pg":10.7,"ta":30},"33A":{"pa":25.07,"pg":18.27,"ta":30},"33B":{"pa":21.11,"pg":17.17,"ta":30},"34A":{"pa":26.57,"pg":21.3,"ta":30},"34B":{"pa":25.17,"pg":21.19,"ta":30},"35A":{"pa":25.3,"pg":13.49,"ta":30},"35B":{"pa":27.15,"pg":18.8,"ta":30},"37A":{"pa":23.89,"pg":15.46,"ta":30},"37B":{"pa":27.69,"pg":24.66,"ta":30},"38A":{"pa":26.09,"pg":12.99,"ta":30},"38B":{"pa":23.55,"pg":18.54,"ta":30},"39A":{"pa":9.02,"pg":33.33,"ta":30},"39B":{"pa":30.04,"pg":19.24,"ta":30},"40A":{"pa":25.41,"pg":21.99,"ta":30},"40B":{"pa":20.66,"pg":23.38,"ta":30}},"createdAt":2,"date":"","fan":"yedek","name":"2. ölçüm (yedek fan)","note":"Elektrik kesintisi sonrası yedek fan motoruyla alındı; farklı debi nedeniyle sapmalar büyük.","id":"r2"}];
+let storageOK=true;
+function load(){
+  try{const s=localStorage.getItem(KEY);if(s){const a=JSON.parse(s);if(Array.isArray(a))return a;}}catch(e){storageOK=false;}
+  return JSON.parse(JSON.stringify(SEED));
+}
+function persist(){
+  try{localStorage.setItem(KEY,JSON.stringify(S.rounds.map(clean)));storageOK=true;}
+  catch(e){storageOK=false;toast('Kaydedilemedi: telefon depolaması kullanılamıyor');}
+}
+const clean=r=>({id:r.id,name:r.name,date:r.date||'',fan:r.fan||'ana',note:r.note||'',createdAt:r.createdAt||0,b:r.b||{}});
+
+const S={rounds:[],cur:null,cmp:null,sel:null};
+function toast(m){const t=$('toast');t.textContent=m;t.classList.add('show');clearTimeout(toast.h);toast.h=setTimeout(()=>t.classList.remove('show'),2200);}
+
+const roundById=id=>S.rounds.find(r=>r.id===id)||null;
+function meas(round,id){
+  if(!round||!round.b||!round.b[id])return null;
+  const m=round.b[id];
+  if(m.off)return{off:true,note:m.note||''};
+  const l=lamOf(m.pa,m.pg,m.ta??30);
+  return l==null?null:{pa:m.pa,pg:m.pg,ta:m.ta??30,l};
+}
+
+/* ---------- Tur seçicileri ---------- */
+function defaultCmp(curId){
+  const i=S.rounds.findIndex(r=>r.id===curId);if(i<=0)return'';
+  const earlier=S.rounds.slice(0,i).reverse();
+  return(earlier.find(r=>r.fan!=='yedek')||earlier[0]).id;
+}
+function roundLabel(r){return r.name+(r.date?' ('+r.date.split('-').reverse().join('.')+')':'');}
+function renderRounds(){
+  const cs=$('curSel'),ms=$('cmpSel');
+  cs.innerHTML=S.rounds.length?S.rounds.slice().reverse().map(r=>`<option value="${r.id}">${esc(roundLabel(r))}</option>`).join(''):'<option value="">Henüz tur yok</option>';
+  cs.value=S.cur||'';
+  ms.innerHTML='<option value="">Karşılaştırma yok</option>'+S.rounds.filter(r=>r.id!==S.cur).slice().reverse().map(r=>`<option value="${r.id}">${esc(roundLabel(r))}</option>`).join('');
+  ms.value=S.cmp||'';
+  const r=roundById(S.cur),c=roundById(S.cmp);
+  const notes=[];
+  if(r&&r.fan==='yedek')notes.push('Bu tur yedek fanla alındı; hava debisi farklı.');
+  if(c&&c.fan==='yedek')notes.push('Karşılaştırılan tur yedek fanla alındı; farklar fan kaynaklı olabilir.');
+  if(r&&r.note)notes.push('Not: '+r.note);
+  if(!storageOK)notes.push('Telefon depolaması kullanılamıyor; girilen ölçümler uygulama kapanınca kaybolur.');
+  $('roundNote').hidden=!notes.length;$('roundNote').textContent=notes.join(' ');
+  $('delRoundBtn').hidden=!r;
+  $('csvBtn').disabled=!r;
+}
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+
+/* ---------- Harita ---------- */
+function renderMap(){
+  const r=roundById(S.cur),c=roundById(S.cmp);
+  $('map').innerHTML=GROUPS.map(G=>{
+    const cells=G.n.flatMap(n=>[n+'A',n+'B']).map(id=>{
+      const m=meas(r,id),p=meas(c,id);
+      let cls='cell',style='',v='–',ar='';
+      if(!m)cls+=' empty';
+      else if(m.off){cls+=' off';v='kapalı';}
+      else{style=`background:var(${cat(m.l).c})`;v=f(m.l);
+        if(p&&!p.off){const d=dist(m.l)-dist(p.l);if(Math.abs(m.l-p.l)>=.02)ar=m.l>p.l?'▲':'▼';
+          if(ar)ar=`<span class="ar" style="opacity:${Math.abs(d)<.02?.55:1}">${ar}</span>`;}}
+      return `<button class="${cls}" style="${style}" data-id="${id}" aria-pressed="${S.sel===id}">${ar}<span class="i">${id}</span><span class="v">${v}</span></button>`;
+    }).join('');
+    return `<div class="grow"><div class="glabel"><b>${G.g}. grup</b>${G.set}°C</div><div class="cells">${cells}</div></div>`;
+  }).join('');
+}
+$('map').addEventListener('click',e=>{const b=e.target.closest('.cell');if(b)select(b.dataset.id);});
+
+/* ---------- Seçim ve girdiler ---------- */
+function select(id){
+  S.sel=id;
+  const m=meas(roundById(S.cur),id);
+  $('pa').value=m&&!m.off?f(m.pa):'';$('pg').value=m&&!m.off?f(m.pg):'';
+  if(m&&!m.off)$('ta').value=String(m.ta).replace('.',',');
+  renderAll();
+  $('inputBlock').scrollIntoView({behavior:'smooth',block:'start'});
+}
+$('freeBtn').onclick=()=>{S.sel=null;renderAll();};
+function renderPanel(){
+  const G=S.sel&&groupOf(S.sel);
+  $('panelTitle').textContent=S.sel?`${S.sel}, ${G.g}. grup (${G.set}°C)`:'Serbest hesap';
+  $('freeBtn').hidden=!S.sel;
+  $('saveRow').hidden=!(S.sel&&S.cur);
+  $('clearBtn').disabled=!meas(roundById(S.cur),S.sel);
+}
+document.querySelectorAll('.step').forEach(b=>b.addEventListener('click',()=>{
+  const el=$(b.dataset.t),s=parseFloat(b.dataset.s);let v=num(el.value);if(isNaN(v))v=b.dataset.t==='ta'?30:b.dataset.t==='tgt'?1.05:0;
+  v=Math.max(0,v+s);el.value=b.dataset.t==='ta'?String(Math.round(v)):f(v,2);updateLive();
+}));
+['pa','pg','ta','tgt'].forEach(id=>$(id).addEventListener('input',updateLive));
+
+function updateLive(){
+  const pa=num($('pa').value),pg=num($('pg').value),ta=isNaN(num($('ta').value))?30:num($('ta').value);
+  const l=lamOf(pa,pg,ta);
+  $('resId').textContent=S.sel?S.sel+(roundById(S.cur)?', '+roundById(S.cur).name:''):'Serbest hesap';
+  if(l==null){$('lamVal').textContent='–';$('resTag').textContent='Değer girin';$('resTag').style.background='var(--muted)';}
+  else{const c=cat(l);$('lamVal').textContent=f(l);$('resTag').textContent=c.t;$('resTag').style.background=`var(${c.c})`;}
+  const p=S.sel?meas(roundById(S.cmp),S.sel):null;
+  if(p&&!p.off&&l!=null){const d=dist(l)-dist(p.l);
+    $('resCmp').innerHTML=`${esc(roundById(S.cmp).name)}: ${f(p.l)} → ${f(l)} <span class="${d<-.005?'better':d>.005?'worse':''}">${d<-.005?'iyileşti':d>.005?'kötüleşti':'aynı bantta'}</span>`;}
+  else if(p&&p.off)$('resCmp').textContent=`${roundById(S.cmp).name}: brülör kapalıydı`;
+  else $('resCmp').textContent=S.sel&&S.cmp?'Karşılaştırılan turda bu brülörün ölçümü yok':'';
+  renderAssist(pa,pg,ta);
+}
+
+/* ---------- Ayar asistanı ---------- */
+function renderAssist(pa,pg,ta){
+  const n=num($('tgt').value),out=$('assist');
+  if(!(n>0.3&&n<2.5)){out.innerHTML='<div class="small">Hedef λ 0,3 ile 2,5 arasında olmalı.</div>';return;}
+  if(!(pa>0&&pg>0)){out.innerHTML='<div class="small">Hesap için hava ve gaz basıncını girin.</div>';return;}
+  const A=needPA(pg,ta,n),Gs=needPG(pa,ta,n);
+  const arrow=(to,from)=>to>from+.05?'artırın':to<from-.05?'azaltın':'değiştirmeyin';
+  out.innerHTML=`
+   <div class="tline"><div class="lbl">Gaz ${f(pg)} mbar sabitken<br><b>havayı ${arrow(A,pa)}</b></div><div class="big num">${f(A,1)}<span class="small"> mbar</span></div></div>
+   <div class="tline"><div class="lbl">Hava ${f(pa)} mbar sabitken<br><b>gazı ${arrow(Gs,pg)}</b></div><div class="big num">${f(Gs,1)}<span class="small"> mbar</span></div></div>`;
+}
+
+/* ---------- Kaydet ---------- */
+$('saveBtn').onclick=()=>{
+  const pa=num($('pa').value),pg=num($('pg').value),ta=isNaN(num($('ta').value))?30:num($('ta').value);
+  if(!(pa>0&&pg>0)){toast('Hava ve gaz basıncını girin');return;}
+  writeMeas(S.sel,{pa,pg,ta,off:false,t:Date.now()},true);
+};
+$('offBtn').onclick=()=>writeMeas(S.sel,{off:true,t:Date.now()},true);
+$('clearBtn').onclick=()=>{
+  const id=S.sel,r=roundById(S.cur);if(!r||!r.b||!r.b[id])return;
+  delete r.b[id];persist();
+  $('pa').value='';$('pg').value='';renderAll();toast(id+' ölçümü silindi');
+};
+function writeMeas(id,m,next){
+  const r=roundById(S.cur);if(!r)return;
+  r.b=r.b||{};r.b[id]=m;persist();
+  toast(id+(m.off?' kapalı olarak kaydedildi':' kaydedildi'));
+  if(next){const i=ORDER.indexOf(id);const nx=ORDER.slice(i+1).find(x=>!meas(r,x))||ORDER[i+1];
+    if(nx){select(nx);return;}}
+  renderAll();
+}
+
+/* ---------- Tur yönetimi ---------- */
+$('newBtn').onclick=()=>{
+  $('newForm').classList.add('open');
+  $('nrName').value=(S.rounds.length+1)+'. ölçüm';
+  $('nrDate').value=new Date().toISOString().slice(0,10);$('nrFan').value='ana';$('nrNote').value='';
+};
+$('nrCancel').onclick=()=>$('newForm').classList.remove('open');
+$('nrSave').onclick=()=>{
+  const name=$('nrName').value.trim()||((S.rounds.length+1)+'. ölçüm');
+  const id='r'+Date.now();
+  const prev=S.cur;
+  S.rounds.push({id,name,date:$('nrDate').value||'',fan:$('nrFan').value,note:$('nrNote').value.trim(),createdAt:Date.now(),b:{}});
+  S.cur=id;S.cmp=prev&&roundById(prev)&&roundById(prev).fan!=='yedek'?prev:defaultCmp(id);S.sel=null;
+  persist();$('newForm').classList.remove('open');renderAll();toast('Tur başlatıldı; bir brülöre dokunun');
+};
+$('delRoundBtn').onclick=()=>{
+  const r=roundById(S.cur);if(!r)return;
+  if(!confirm(`"${r.name}" turu ve içindeki tüm ölçümler silinsin mi?`))return;
+  S.rounds=S.rounds.filter(x=>x.id!==r.id);S.cur=S.rounds.length?S.rounds[S.rounds.length-1].id:null;S.cmp=defaultCmp(S.cur);S.sel=null;
+  persist();renderAll();toast('Tur silindi');
+};
+$('curSel').onchange=e=>{S.cur=e.target.value||null;S.cmp=defaultCmp(S.cur);if(S.sel)select(S.sel);else renderAll();};
+$('cmpSel').onchange=e=>{S.cmp=e.target.value||null;renderAll();};
+
+/* ---------- Özet ---------- */
+function renderSum(){
+  const r=roundById(S.cur),c=roundById(S.cmp);
+  if(!r){$('sumTitle').textContent='Tur özeti';$('sum').innerHTML='<p class="small">Kayıtlı tur yok. Yeni bir tur başlatın ya da serbest hesap yapın.</p>';return;}
+  $('sumTitle').textContent=r.name;
+  let cnt={'--bad':0,'--low':0,'--good':0,'--high':0},off=0,done=0;const ch=[];
+  ORDER.forEach(id=>{const m=meas(r,id);if(!m)return;done++;if(m.off){off++;return;}cnt[cat(m.l).c]++;
+    const p=meas(c,id);if(p&&!p.off)ch.push({id,a:p.l,b:m.l,d:dist(m.l)-dist(p.l)});});
+  const lit=done-off;
+  const bar=lit?Object.entries(cnt).filter(([,v])=>v).map(([k,v])=>`<div style="flex:${v};background:var(${k})"></div>`).join(''):'';
+  ch.sort((x,y)=>Math.abs(y.b-y.a)-Math.abs(x.b-x.a));
+  const better=ch.filter(x=>x.d<-.005).length,worse=ch.filter(x=>x.d>.005).length;
+  $('sum').innerHTML=`
+    <p class="small" style="margin:0">${done} / ${ORDER.length} pozisyon girildi${off?`, ${off} brülör kapalı`:''}.</p>
+    <div class="bar">${bar}</div>
+    <p style="margin:0 0 6px;font-size:14px">${lit?`<b style="color:var(--bad)">${cnt['--bad']}</b> eksik hava, <b style="color:var(--low)">${cnt['--low']}</b> hafif düşük, <b style="color:var(--good)">${cnt['--good']}</b> uygun, <b style="color:var(--high)">${cnt['--high']}</b> hava fazlası.`:'Henüz yanan brülör ölçümü yok.'}</p>
+    ${c&&ch.length?`<p style="margin:12px 0 0;font-size:14px">${esc(c.name)} ile kıyas: <span class="better">${better} iyileşti</span>, <span class="worse">${worse} kötüleşti</span>. En çok değişenler:</p>
+    <ul class="list">${ch.slice(0,6).map(x=>`<li><span><b>${x.id}</b></span><span class="num">${f(x.a)} → ${f(x.b)} <span class="${x.d<-.005?'better':x.d>.005?'worse':'small'}">${x.d<-.005?'▲ iyi':x.d>.005?'▼ kötü':'aynı bant'}</span></span></li>`).join('')}</ul>`:''}`;
+}
+
+/* ---------- Paylaşım / yedek ---------- */
+function share(text,title,filename,mime){
+  if(window.AndroidBridge&&AndroidBridge.share){AndroidBridge.share(text,title);return;}
+  try{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:mime}));a.download=filename;
+    document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);}
+  catch(e){toast('Paylaşılamadı');}
+}
+const fn=v=>String(v).replace('.',',');
+$('csvBtn').onclick=()=>{
+  const r=roundById(S.cur);if(!r)return;
+  const lines=['Tur;Tarih;Fan;Grup;Set °C;Brülör;Hava PA (mbar);Gaz PG (mbar);ta (°C);Lambda;Durum'];
+  ORDER.forEach(id=>{const m=meas(r,id),G=groupOf(id);
+    if(!m)return;
+    lines.push([r.name,r.date,r.fan,G.g,G.set,id,m.off?'':fn(m.pa),m.off?'':fn(m.pg),m.off?'':fn(m.ta),m.off?'':f(m.l),m.off?'Kapalı':cat(m.l).t].join(';'));});
+  share('﻿'+lines.join('\n'),r.name+' – Roller-5 lambda','roller5_'+r.id+'.csv','text/csv');
+};
+$('bakBtn').onclick=()=>share(JSON.stringify({app:'roller5-lambda',v:1,at:new Date().toISOString(),rounds:S.rounds.map(clean)}),'Roller-5 lambda yedek','roller5_lambda_yedek.json','application/json');
+$('impBtn').onclick=()=>{$('impForm').classList.add('open');$('impTxt').value='';$('impTxt').focus();};
+$('impCancel').onclick=()=>$('impForm').classList.remove('open');
+function parseImp(){
+  try{const d=JSON.parse($('impTxt').value.trim());const a=Array.isArray(d)?d:d.rounds;
+    if(!Array.isArray(a)||!a.every(r=>r&&r.id&&typeof r.b==='object'))throw 0;return a.map(clean);}
+  catch(e){toast('Yedek metni okunamadı');return null;}
+}
+function afterImp(n){persist();S.cur=S.rounds.length?S.rounds[S.rounds.length-1].id:null;S.cmp=defaultCmp(S.cur);S.sel=null;
+  $('impForm').classList.remove('open');renderAll();toast(n+' tur yüklendi');}
+$('impMerge').onclick=()=>{const a=parseImp();if(!a)return;
+  a.forEach(r=>{const i=S.rounds.findIndex(x=>x.id===r.id);if(i>=0)S.rounds[i]=r;else S.rounds.push(r);});
+  S.rounds.sort((x,y)=>(x.createdAt||0)-(y.createdAt||0));afterImp(a.length);};
+$('impReplace').onclick=()=>{const a=parseImp();if(!a)return;
+  if(!confirm('Telefondaki tüm turlar silinip yedektekiler yüklensin mi?'))return;
+  S.rounds=a.sort((x,y)=>(x.createdAt||0)-(y.createdAt||0));afterImp(a.length);};
+
+function renderAll(){renderRounds();renderMap();renderPanel();updateLive();renderSum();}
+
+/* ---------- Başlat ---------- */
+S.rounds=load();
+const ana=S.rounds.filter(r=>r.fan!=='yedek');
+S.cur=(ana.length?ana[ana.length-1]:S.rounds[S.rounds.length-1]||{}).id||null;
+S.cmp=defaultCmp(S.cur);
+renderAll();
+})();
+</script>
+</body>
+</html>
